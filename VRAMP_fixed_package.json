@@ -1,0 +1,14 @@
+{
+  "name": "vramp-ipl-auction",
+  "version": "1.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

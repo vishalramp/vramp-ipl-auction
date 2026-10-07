@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VRAMP Auction Arena</title>
+<style>
+:root{
+  --bg:#10071b;--card:#1b1029;--card2:#241538;--line:#3a2454;
+  --pink:#ff3fb4;--gold:#ffc857;--mint:#53e0b2;--red:#ff5f70;
+  --text:#fff8ff;--muted:#bcaac7
+}
+*{box-sizing:border-box}
+body{
+  margin:0;color:var(--text);font-family:Inter,system-ui,sans-serif;
+  background:radial-gradient(circle at 50% -10%,#54206d,transparent 40%),var(--bg)
+}
+.wrap{max-width:1250px;margin:auto;padding:18px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:8px 0 16px}
+.logo{font-weight:900;letter-spacing:1px;font-size:22px}
+.pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:260px 1fr 280px;gap:14px;margin-top:14px}
+.card{background:linear-gradient(145deg,#1d102b,#130b20);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 14px 40px #0004}
+.hero{text-align:center;padding:28px 18px}
+.hero h1{font-size:42px;margin:0 0 8px}.hero p{color:var(--muted)}
+input,select,button{width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);background:#100918;color:var(--text);margin-top:8px}
+button{cursor:pointer;background:linear-gradient(90deg,#ff3fb4,#7e4dff);border:0;font-weight:800}
+button.alt{background:#241538;border:1px solid var(--line)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.teams{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0}
+.team{padding:10px 4px;text-align:center;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.team.on{border-color:var(--pink);background:#ff3fb414}
+.player{text-align:center;min-height:330px;display:flex;flex-direction:column;justify-content:center}
+.set{color:var(--gold);font-weight:800}.name{font-size:34px;font-weight:900;margin:10px 0}
+.bid{font-size:44px;color:var(--mint);font-weight:900}.timer{font-size:54px;font-weight:900;color:var(--pink)}
+.bidbtn{font-size:18px;padding:15px}.row{display:flex;gap:8px}.row>*{flex:1}
+.feed{max-height:430px;overflow:auto}.feed div{padding:8px 0;border-bottom:1px solid #ffffff0b;font-size:13px}
+.small{font-size:12px;color:var(--muted)}.hide{display:none}.admin{border-color:#71406d}
+.online{color:var(--mint)}.offline{color:var(--red)}
+.room{font-size:26px;font-weight:900;letter-spacing:4px;color:var(--gold)}
+.table div{display:flex;justify-content:space-between;gap:10px;padding:8px;border-bottom:1px solid #ffffff0b}
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mode button.active{outline:2px solid var(--pink)}
+.notice{margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:12px}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}.teams{grid-template-columns:repeat(5,1fr)}
+  .name{font-size:27px}.hero h1{font-size:34px}.table div{font-size:12px}
+}
+.vr{font-size:10px;opacity:.45;position:fixed;right:9px;bottom:7px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <div class="logo">VRAMP <span style="color:#ff3fb4">AUCTION ARENA</span></div>
+  <div id="status" class="pill">Not connected</div>
+</div>
+
+<section id="home">
+<div class="card hero">
+  <h1>IPL AUCTION</h1>
+  <p>Build your franchise. Bid live. Win the auction.</p>
+
+  <input id="name" placeholder="Your name" maxlength="24">
+
+  <div class="teams" id="teams"></div>
+
+  <div class="mode">
+    <button id="mega" class="active">MEGA AUCTION</button>
+    <button id="mock" class="alt">MOCK AUCTION</button>
+  </div>
+
+  <div class="row">
+    <button id="create">CREATE ROOM</button>
+    <button id="joinBtn" class="alt">JOIN ROOM</button>
+  </div>
+
+  <input id="code" placeholder="Room code" style="text-transform:uppercase">
+
+  <label class="small">
+    <input id="spectate" type="checkbox" style="width:auto">
+    Join as spectator
+  </label>
+
+  <div class="notice">
+    Choose a franchise, create a room and share the room code with your friends.
+  </div>
+</div>
+</section>
+
+<section id="lobby" class="hide">
+<div class="grid">
+
+  <div class="card">
+    <div class="small">ROOM CODE</div>
+    <div id="roomCode" class="room">------</div>
+    <button id="copy">COPY CODE</button>
+    <div class="small" style="margin-top:10px">Share this code with friends.</div>
+  </div>
+
+  <div class="card">
+    <h3>Players</h3>
+    <div id="players"></div>
+    <button id="start">START AUCTION</button>
+  </div>
+
+  <div class="card admin">
+    <h3>Host Settings</h3>
+
+    <label class="small">Timer</label>
+    <select id="timer">
+      <option value="5">5</option>
+      <option value="10" selected>10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+      <option value="30">30</option>
+    </select>
+
+    <label class="small">Reset after bid</label>
+    <select id="reset">
+      <option value="5" selected>5</option>
+      <option value="10">10</option>
+      <option value="15">15</option>
+    </select>
+
+    <button id="saveSettings">SAVE SETTINGS</button>
+  </div>
+
+</div>
+</section>
+
+<section id="game" class="hide">
+<div class="grid">
+
+  <aside class="card">
+    <h3>Teams</h3>
+    <div id="teamTable" class="table"></div>
+    <h3>Activity</h3>
+    <div id="feed" class="feed"></div>
+  </aside>
+
+  <main class="card player">
+    <div id="set" class="set">AUCTION</div>
+    <div id="pname" class="name">Waiting…</div>
+    <div id="meta" class="small"></div>
+
+    <div>BASE PRICE <b id="base"></b></div>
+
+    <div id="bid" class="bid">₹0.00 Cr</div>
+    <div id="bidder" class="small"></div>
+
+    <div id="timerView" class="timer">10</div>
+
+    <button id="bidBtn" class="bidbtn">BID</button>
+
+    <div class="row">
+      <button id="unsold" class="alt">UNSOLD</button>
+      <button id="next" class="alt">NEXT</button>
+    </div>
+  </main>
+
+  <aside class="card">
+    <h3>Live Chat</h3>
+    <div id="chat" class="feed" style="height:220px"></div>
+    <div class="row" style="margin-top:8px">
+      <input id="chatInput" placeholder="Type a message..." style="flex:1">
+      <button id="chatSend" class="alt">SEND</button>
+    </div>
+
+    <h3 style="margin-top:18px">Host / Players</h3>
+    <div id="hostPanel"></div>
+
+    <h3>My Squad</h3>
+    <div id="mySquad"></div>
+  </aside>
+
+</div>
+</section>
+
+<div class="vr">VRAMP</div>
+</div>
+
+<script>
+let ws=null;
+let me="";
+let host=false;
+let code="";
+let mode="mega";
+let selectedTeam="MI";
+let state=null;
+let pool=[];
+let connecting=false;
+
+const $=id=>document.getElementById(id);
+
+const TEAMS=["MI","CSK","RCB","KKR","DC","PBKS","RR","SRH","GT","LSG"];
+
+TEAMS.forEach(team=>{
+  const d=document.createElement("div");
+  d.className="team"+(team==="MI"?" on":"");
+  d.textContent=team;
+
+  d.onclick=()=>{
+    selectedTeam=team;
+    document.querySelectorAll(".team").forEach(x=>x.classList.remove("on"));
+    d.classList.add("on");
+  };
+
+  $("teams").appendChild(d);
+});
+
+$("mega").onclick=()=>{
+  mode="mega";
+  $("mega").classList.add("active");
+  $("mock").classList.remove("active");
+};
+
+$("mock").onclick=()=>{
+  mode="mock";
+  $("mock").classList.add("active");
+  $("mega").classList.remove("active");
+};
+
+
+/* PLAYER POOL */
+
+async function loadPool(){
+  if(pool.length)return;
+  try{
+    const r=await fetch('/players.json',{cache:'no-store'});
+    if(!r.ok) throw new Error('Player database unavailable');
+    const data=await r.json();
+    if(!Array.isArray(data.players) || data.players.length<500) throw new Error('Incomplete player database');
+    pool=data.players;
+    const countEl=document.getElementById('poolCount');
+    if(countEl) countEl.textContent=`${pool.length} players loaded`;
+  }catch(err){
+    console.error(err);
+    alert('Player database could not be loaded. Please refresh the page and try again.');
+    pool=[];
+  }
+}
+
+/* WEBSOCKET */
+
+function connect(){
+
+  if(ws && (
+    ws.readyState===WebSocket.OPEN ||
+    ws.readyState===WebSocket.CONNECTING
+  )){
+    return;
+  }
+
+  connecting=true;
+
+  const protocol=
+    location.protocol==="https:"
+    ?"wss://"
+    :"ws://";
+
+  ws=new WebSocket(protocol+location.host);
+
+  ws.onopen=()=>{
+    connecting=false;
+    $("status").textContent="Connected";
+    $("status").style.color="#53e0b2";
+  };
+
+  ws.onmessage=e=>{
+    let m;
+
+    try{
+      m=JSON.parse(e.data);
+    }catch{
+      return;
+    }
+
+    if(m.type==="error"){
+      alert(m.msg || "Something went wrong.");
+      return;
+    }
+
+    if(m.type==="kicked"){
+      alert("You were removed by the host.");
+      location.reload();
+      return;
+    }
+
+    if(m.type==="joined"){
+      me=m.id || "";
+      code=m.code || "";
+      host=!!m.host;
+
+      $("roomCode").textContent=code || "------";
+
+      show("lobby");
+
+      return;
+    }
+
+    if(m.type==="state"){
+      state=m;
+      render();
+      return;
+    }
+
+    if(m.type==="finished"){
+      alert("Auction finished!");
+      return;
+    }
+  };
+
+  ws.onerror=()=>{
+    connecting=false;
+    $("status").textContent="Connection error";
+    $("status").style.color="#ff5f70";
+  };
+
+  ws.onclose=()=>{
+    connecting=false;
+    $("status").textContent="Offline";
+    $("status").style.color="#ff5f70";
+  };
+}
+
+
+/* SEND */
+
+function send(obj){
+  if(ws && ws.readyState===WebSocket.OPEN){
+    ws.send(JSON.stringify(obj));
+    return true;
+  }
+  return false;
+}
+
+
+/* SEND AFTER CONNECTION IS READY */
+
+function sendWhenReady(obj){
+
+  if(ws && ws.readyState===WebSocket.OPEN){
+    send(obj);
+    return;
+  }
+
+  if(!ws || ws.readyState===WebSocket.CLOSED){
+
+    connect();
+
+  }
+
+  const socket=ws;
+
+  const handler=()=>{
+    send(obj);
+  };
+
+  if(socket.readyState===WebSocket.OPEN){
+    handler();
+  }else{
+    socket.addEventListener("open",handler,{once:true});
+  }
+}
+
+
+/* SCREEN */
+
+function show(screen){
+
+  ["home","lobby","game"].forEach(id=>{
+    $(id).classList.toggle("hide",id!==screen);
+  });
+
+}
+
+
+/* CREATE ROOM */
+
+$("create").onclick=async()=>{
+
+  if(connecting)return;
+
+  const name=$("name").value.trim() || "Host";
+
+  const msg={
+    type:"create",
+    name:name,
+    team:selectedTeam,
+    mode:mode,
+    settings:{
+      timer:Number($("timer").value)||10,
+      reset:Number($("reset").value)||5
+    }
+  };
+
+  await loadPool();
+
+  sendWhenReady(msg);
+};
+
+
+/* JOIN ROOM */
+
+$("joinBtn").onclick=()=>{
+
+  if(connecting)return;
+
+  const roomCode=$("code").value.trim().toUpperCase();
+
+  if(!roomCode){
+    alert("Enter the room code.");
+    $("code").focus();
+    return;
+  }
+
+  const msg={
+    type:"join",
+    name:$("name").value.trim() || "Player",
+    team:selectedTeam,
+    code:roomCode,
+    spectator:$("spectate").checked
+  };
+
+  sendWhenReady(msg);
+};
+
+
+/* START */
+
+$("start").onclick=async()=>{
+
+  if(!host){
+    alert("Only the host can start the auction.");
+    return;
+  }
+
+  await loadPool();
+
+  send({type:"start"});
+};
+
+
+/* COPY */
+
+$("copy").onclick=async()=>{
+
+  if(!code){
+    return;
+  }
+
+  try{
+    await navigator.clipboard.writeText(code);
+    alert("Room code copied: "+code);
+  }catch{
+    alert("Room code: "+code);
+  }
+};
+
+
+/* SETTINGS */
+
+$("saveSettings").onclick=()=>{
+
+  if(!host)return;
+
+  send({
+    type:"settings",
+    timer:Number($("timer").value),
+    reset:Number($("reset").value),
+    accelerated:true
+  });
+};
+
+
+/* BID */
+
+$("bidBtn").onclick=()=>{
+
+  if(!state || !state.started)return;
+
+  send({
+    type:"bid"
+  });
+};
+
+
+/* UNSOLD */
+
+$("unsold").onclick=()=>{
+
+  if(!host)return;
+
+  send({
+    type:"unsold"
+  });
+};
+
+
+/* NEXT */
+
+$("next").onclick=()=>{
+
+  if(!host)return;
+
+  send({
+    type:"next"
+  });
+};
+
+
+/* CHAT */
+function sendChat(){
+  const input=$("chatInput");
+  const text=input.value.trim();
+  if(!text)return;
+  if(send({type:"chat",text})){
+    input.value="";
+    input.focus();
+  }
+}
+$("chatSend").onclick=sendChat;
+$("chatInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter")sendChat();
+});
+
+/* KICK */
+
+function kick(id){
+
+  if(!host || !id)return;
+
+  send({
+    type:"kick",
+    id:id
+  });
+}
+
+
+/* ESCAPE HTML */
+
+function esc(value){
+
+  return String(value??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+
+/* RENDER */
+
+function render(){
+
+  if(!state)return;
+
+  show(state.started ? "game" : "lobby");
+
+  if(state.room){
+
+    $("roomCode").textContent=
+      state.room.code || code || "------";
+
+    const players=
+      Array.isArray(state.room.players)
+      ?state.room.players
+      :[];
+
+    $("players").innerHTML=
+      players.length
+
+      ?
+
+      players.map(p=>`
+
+        <div style="
+          padding:8px 0;
+          border-bottom:1px solid #ffffff0b;
+        ">
+
+          <b>${esc(p.team)}</b>
+          ${esc(p.name)}
+
+          <span class="${p.online?"online":"offline"}">
+            ${p.online?"●":"○"}
+          </span>
+
+        </div>
+
+      `).join("")
+
+      :
+
+      "<div class='small'>Waiting for players…</div>";
+  }
+
+
+  $("start").style.display=
+    host && !state.started
+    ?"block"
+    :"none";
+
+  $("saveSettings").style.display=
+    host
+    ?"block"
+    :"none";
+
+
+  if(state.auction){
+
+    const a=state.auction;
+    const p=a.player || {};
+
+    $("set").textContent=
+      "AUCTION • "+(p.role || "PLAYER");
+
+    $("pname").textContent=
+      p.name || "Unknown Player";
+
+    $("meta").textContent=
+      [p.country,p.role]
+      .filter(Boolean)
+      .join(" • ");
+
+    const base=
+      Number(p.baseLakh||0);
+
+    $("base").textContent=
+      "₹"+(base/100).toFixed(2)+" Cr";
+
+    $("bid").textContent=
+      "₹"+(Number(a.bid||0)/100).toFixed(2)+" Cr";
+
+    $("bidder").textContent=
+
+      a.bidder
+
+      ?
+
+      "Highest bidder: "+
+      esc(a.bidder.team)+" • "+
+      esc(a.bidder.name)
+
+      :
+
+      "No bids yet";
+
+
+    $("bidBtn").disabled=
+      !state.started;
+
+
+    $("unsold").style.display=
+      host
+      ?"block"
+      :"none";
+
+    $("next").style.display=
+      host
+      ?"block"
+      :"none";
+
+
+    const ends=
+      Number(a.endsAt||0);
+
+    const seconds=
+      ends
+      ?Math.max(0,Math.ceil((ends-Date.now())/1000))
+      :0;
+
+    $("timerView").textContent=
+      seconds;
+
+
+    if(state.started && ends>0){
+
+      setTimeout(()=>{
+
+        if(state){
+          render();
+        }
+
+      },500);
+
+    }
+
+  }else{
+
+    $("pname").textContent=
+      state.started
+      ?"Waiting for next player…"
+      :"Waiting for host…";
+
+    $("meta").textContent="";
+    $("base").textContent="";
+    $("bid").textContent="₹0.00 Cr";
+    $("bidder").textContent="";
+    $("timerView").textContent="0";
+
+  }
+
+
+  if(state.teams){
+
+    $("teamTable").innerHTML=
+      Object.entries(state.teams)
+      .map(([team,data])=>`
+
+        <div>
+
+          <b>${esc(team)}</b>
+
+          <span>
+            ₹${(Number(data.purse||0)/100).toFixed(2)} Cr
+            • ${Array.isArray(data.squad)?data.squad.length:0}/25
+            • OS ${Number(data.overseas||0)}/8
+          </span>
+
+        </div>
+
+      `)
+      .join("");
+
+
+    const mine=
+      state.teams[selectedTeam]
+      ?state.teams[selectedTeam].squad||[]
+      :[];
+
+
+    $("mySquad").innerHTML=
+
+      mine.length
+
+      ?
+
+      mine.map(p=>`
+
+        <div
+          class="small"
+          style="padding:5px 0">
+
+          ${esc(p.name)}
+
+          • ₹${(Number(p.baseLakh||0)/100).toFixed(2)} Cr
+
+        </div>
+
+      `).join("")
+
+      :
+
+      "<span class='small'>No players yet</span>";
+
+  }
+
+
+  const feed=
+    Array.isArray(state.feed)
+    ?state.feed
+    :[];
+
+
+  $("feed").innerHTML=
+    feed
+      .slice()
+      .reverse()
+      .map(item=>`<div>${esc(item.text)}</div>`)
+      .join("");
+
+  const chat=Array.isArray(state.chat)?state.chat:[];
+  $("chat").innerHTML=chat
+    .slice(-60)
+    .map(item=>`<div style="padding:4px 0"><b>${esc(item.name)}</b>: ${esc(item.text)}</div>`)
+    .join("");
+  $("chat").scrollTop=$("chat").scrollHeight;
+
+
+  $("hostPanel").innerHTML=
+
+    host
+
+    ?
+
+    `
+      <span class="pill">HOST</span>
+      <p class="small">
+        You control start, settings, unsold,
+        next player and player removal.
+      </p>
+    `
+
+    :
+
+    `
+      <span class="small">
+        You are a participant.
+      </span>
+    `;
+}
+
+</script>
+</body>
+</html>
