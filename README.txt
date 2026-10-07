@@ -1,0 +1,1 @@
+VRAMP IPL Auction Arena — stable build. Replace public/index.html and server.js. Keep your existing package.json if it is already working.
